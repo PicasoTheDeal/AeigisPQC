@@ -9,7 +9,11 @@
 
 namespace aegis {
 
-enum class security_level { nist_level_1, nist_level_3, nist_level_5 };
+enum class security_level {
+    nist_level_1,
+    nist_level_3,
+    nist_level_5
+};
 
 struct key_pair {
     std::vector<uint8_t> public_key;
@@ -28,7 +32,9 @@ constexpr size_t mlkem768_priv_len = 2400;
 
 template <typename T, void (*FreeFunc)(T*)>
 struct raii_deleter {
-    void operator()(T* ptr) const { if (ptr) FreeFunc(ptr); }
+    void operator()(T* ptr) const {
+        if (ptr) FreeFunc(ptr);
+    }
 };
 
 using evp_pkey_ctx_ptr = std::unique_ptr<EVP_PKEY_CTX, raii_deleter<EVP_PKEY_CTX, EVP_PKEY_CTX_free>>;

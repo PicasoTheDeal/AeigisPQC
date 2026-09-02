@@ -1,9 +1,8 @@
 #include "aegis/policy_manager.hpp"
 
 namespace aegis::crypto {
-    // forward declared factory linkage for concrete engines
-    std::unique_ptr<ikem_engine> create_hybrid_kem();
-    std::unique_ptr<isignature_engine> create_mldsa_signer();
+std::unique_ptr<ikem_engine> create_hybrid_kem();
+std::unique_ptr<isignature_engine> create_mldsa_signer();
 }
 
 namespace aegis::policy {

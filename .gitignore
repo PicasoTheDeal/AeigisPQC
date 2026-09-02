@@ -6,6 +6,7 @@ lib/
 *.a
 *.so
 *.dylib
+/liboqs/
 
 # cmake files
 CMakeCache.txt

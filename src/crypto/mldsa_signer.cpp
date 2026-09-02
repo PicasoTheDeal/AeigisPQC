@@ -43,4 +43,8 @@ public:
     }
 };
 
+std::unique_ptr<isignature_engine> create_mldsa_signer() {
+    return std::make_unique<mldsa_signer>();
+}
+
 } // namespace aegis::crypto

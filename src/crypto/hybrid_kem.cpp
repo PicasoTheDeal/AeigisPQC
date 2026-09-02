@@ -6,6 +6,7 @@ namespace aegis::crypto {
 
 class hybrid_kem_x25519_mlkem768 : public ikem_engine {
 private:
+    // derive session key using hkdf sha256
     [[nodiscard]] std::vector<uint8_t> derive_hkdf(std::span<const uint8_t> ikm) {
         std::vector<uint8_t> okm(32);
         evp_pkey_ctx_ptr pctx(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr));
@@ -28,6 +29,8 @@ private:
 public:
     [[nodiscard]] key_pair generate_keypair() override {
         key_pair pair;
+
+        // generate x25519 keypair
         evp_pkey_ctx_ptr pctx(EVP_PKEY_CTX_new_id(EVP_PKEY_X25519, nullptr));
         if (!pctx || EVP_PKEY_keygen_init(pctx.get()) <= 0) {
             throw std::runtime_error("x25519 keygen init failed");
@@ -47,6 +50,7 @@ public:
         EVP_PKEY_get_raw_public_key(x25519_pkey.get(), x_pub.data(), &x_pub_len);
         EVP_PKEY_get_raw_private_key(x25519_pkey.get(), x_priv.data(), &x_priv_len);
 
+        // generate mlkem768 keypair
         oqs_kem_ptr kem(OQS_KEM_new(OQS_KEM_alg_ml_kem_768));
         if (!kem) throw std::runtime_error("mlkem768 init failed");
 
@@ -73,9 +77,11 @@ public:
             throw std::invalid_argument("invalid public key size");
         }
 
+        // slice public keys with zero copy spans
         auto peer_x_pub = peer_pubkey.subspan(0, x25519_pub_len);
         auto peer_oqs_pub = peer_pubkey.subspan(x25519_pub_len, mlkem768_pub_len);
 
+        // perform ecdh exchange
         key_pair eph_x = generate_keypair();
         evp_pkey_ptr peer_pkey(EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, nullptr, peer_x_pub.data(), peer_x_pub.size()));
         evp_pkey_ptr my_privkey(EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, eph_x.secret_key.data(), x25519_priv_len));
@@ -91,6 +97,7 @@ public:
         std::vector<uint8_t> x_shared_secret(x_secret_len);
         EVP_PKEY_derive(derive_ctx.get(), x_shared_secret.data(), &x_secret_len);
 
+        // perform mlkem768 encapsulation
         oqs_kem_ptr kem(OQS_KEM_new(OQS_KEM_alg_ml_kem_768));
         std::vector<uint8_t> oqs_ct(kem->length_ciphertext);
         std::vector<uint8_t> oqs_shared_secret(kem->length_shared_secret);
@@ -99,6 +106,7 @@ public:
             throw std::runtime_error("mlkem768 encaps failed");
         }
 
+        // combine ciphertexts and derive session key
         encapsulated_secret enc_out;
         enc_out.ciphertext.reserve(x25519_pub_len + oqs_ct.size());
         enc_out.ciphertext.insert(enc_out.ciphertext.end(), eph_x.public_key.begin(), eph_x.public_key.begin() + x25519_pub_len);
@@ -113,8 +121,8 @@ public:
         return enc_out;
     }
 
-    [[nodiscard]] std::vector<uint8_t> decapsulate(std::span<const uint8_t> ciphertext,
-                                                  std::span<const uint8_t> secret_key) override {
+    [[nodiscard]] std::vector<uint8_t> decapsulate(std::span<const uint8_t> ciphertext, std::span<const uint8_t> secret_key) override {
+        // ecdh decapsulation
         auto eph_x_pub = ciphertext.subspan(0, x25519_pub_len);
         auto oqs_ct = ciphertext.subspan(x25519_pub_len);
 
@@ -135,6 +143,7 @@ public:
         std::vector<uint8_t> x_shared_secret(x_secret_len);
         EVP_PKEY_derive(derive_ctx.get(), x_shared_secret.data(), &x_secret_len);
 
+        // mlkem768 decapsulation
         oqs_kem_ptr kem(OQS_KEM_new(OQS_KEM_alg_ml_kem_768));
         std::vector<uint8_t> oqs_shared_secret(kem->length_shared_secret);
 
@@ -150,5 +159,9 @@ public:
         return derive_hkdf(combined_ikm);
     }
 };
+
+std::unique_ptr<ikem_engine> create_hybrid_kem() {
+    return std::make_unique<hybrid_kem_x25519_mlkem768>();
+}
 
 } // namespace aegis::crypto
