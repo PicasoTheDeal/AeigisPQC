@@ -13,6 +13,7 @@ include_directories(include)
 add_library(aegispqc_core
     src/crypto/hybrid_kem.cpp
     src/crypto/mldsa_signer.cpp
+    src/crypto/aead.cpp
     src/policy/policy_manager.cpp
     src/session/aegis_session.cpp
     src/net/frame.cpp
