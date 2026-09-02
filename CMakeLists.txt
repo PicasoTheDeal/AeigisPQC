@@ -15,6 +15,7 @@ add_library(aegispqc_core
     src/crypto/mldsa_signer.cpp
     src/policy/policy_manager.cpp
     src/session/aegis_session.cpp
+    src/net/frame.cpp
 )
 
 target_link_libraries(aegispqc_core PUBLIC OpenSSL::Crypto ${OQS_LIB})

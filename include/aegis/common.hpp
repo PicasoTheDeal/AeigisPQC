@@ -4,10 +4,42 @@
 #include <cstddef>
 #include <memory>
 #include <span>
+#include <limits>
+#include <new>
 #include <openssl/evp.h>
+#include <openssl/crypto.h>
 #include <oqs/oqs.h>
 
 namespace aegis {
+
+// Custom allocator that sanitizes memory with OPENSSL_cleanse upon deallocation
+template <typename T>
+struct secure_allocator {
+    using value_type = T;
+
+    secure_allocator() noexcept = default;
+    template <typename U>
+    constexpr secure_allocator(const secure_allocator<U>&) noexcept {}
+
+    [[nodiscard]] T* allocate(std::size_t n) {
+        if (n > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+            throw std::bad_array_new_length();
+        }
+        return static_cast<T*>(::operator new(n * sizeof(T)));
+    }
+
+    void deallocate(T* p, std::size_t n) noexcept {
+        if (p) {
+            OPENSSL_cleanse(p, n * sizeof(T));
+            ::operator delete(p);
+        }
+    }
+
+    bool operator==(const secure_allocator&) const noexcept { return true; }
+    bool operator!=(const secure_allocator&) const noexcept { return false; }
+};
+
+using secure_vector = std::vector<uint8_t, secure_allocator<uint8_t>>;
 
 enum class security_level {
     nist_level_1,
@@ -17,12 +49,12 @@ enum class security_level {
 
 struct key_pair {
     std::vector<uint8_t> public_key;
-    std::vector<uint8_t> secret_key;
+    secure_vector secret_key; // Automatically zeroized on destruction
 };
 
 struct encapsulated_secret {
     std::vector<uint8_t> ciphertext;
-    std::vector<uint8_t> shared_secret;
+    secure_vector shared_secret; // Automatically zeroized on destruction
 };
 
 constexpr size_t x25519_pub_len = 32;
