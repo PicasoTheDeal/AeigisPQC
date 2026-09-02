@@ -17,6 +17,7 @@ add_library(aegispqc_core
     src/policy/policy_manager.cpp
     src/session/aegis_session.cpp
     src/net/frame.cpp
+    src/c_api.cpp
 )
 
 target_link_libraries(aegispqc_core PUBLIC OpenSSL::Crypto ${OQS_LIB})
@@ -39,6 +40,8 @@ add_executable(aegis_tests
     tests/test_crypto.cpp
     tests/test_session.cpp
     tests/test_secure_memory.cpp
+    tests/test_aead.cpp
+    tests/test_c_api.cpp
 )
 
 target_link_libraries(aegis_tests PRIVATE aegispqc_core Catch2::Catch2WithMain)
