@@ -1,12 +1,13 @@
 # build outputs
 build/
+build-san/
 bin/
 lib/
 *.o
 *.a
 *.so
 *.dylib
-/liboqs/
+liboqs/
 
 # cmake files
 CMakeCache.txt

@@ -21,3 +21,29 @@ target_link_libraries(aegispqc_core PUBLIC OpenSSL::Crypto ${OQS_LIB})
 
 add_executable(aegis_demo src/main.cpp)
 target_link_libraries(aegis_demo PRIVATE aegispqc_core)
+
+# --- Unit Tests Setup ---
+include(FetchContent)
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.5.2
+)
+FetchContent_MakeAvailable(Catch2)
+
+enable_testing()
+
+add_executable(aegis_tests
+    tests/test_crypto.cpp
+    tests/test_session.cpp
+)
+
+target_link_libraries(aegis_tests PRIVATE aegispqc_core Catch2::Catch2WithMain)
+
+include(CTest)
+include(Catch)
+catch_discover_tests(aegis_tests)
+
+# --- Benchmark Executable ---
+add_executable(aegis_bench benchmarks/bench_crypto.cpp)
+target_link_libraries(aegis_bench PRIVATE aegispqc_core)
