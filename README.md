@@ -178,7 +178,9 @@ cmake --build build -j$(nproc)
 ```bash
 # Arch Linux
 
-sudo pacman -S base-devel cmake clang openssl liboqs
+sudo pacman -S base-devel cmake clang openssl
+
+yay -S liboqs
 
 # Debian / Ubuntu (22.04+)
 
