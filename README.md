@@ -180,7 +180,9 @@ cmake --build build -j$(nproc)
 
 sudo pacman -S base-devel cmake clang openssl
 
-yay -S liboqs
+# This one might take time
+
+yay -S liboqs 
 
 # Debian / Ubuntu (22.04+)
 
