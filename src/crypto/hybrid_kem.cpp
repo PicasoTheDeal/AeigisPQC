@@ -1,14 +1,17 @@
 #include "aegis/crypto_interface.hpp"
+#include "aegis/common.hpp"
 #include <stdexcept>
 #include <openssl/kdf.h>
+#include <openssl/evp.h>
+#include <oqs/oqs.h>
 
 namespace aegis::crypto {
 
 class hybrid_kem_x25519_mlkem768 : public ikem_engine {
 private:
-    // derive session key using hkdf sha256
-    [[nodiscard]] std::vector<uint8_t> derive_hkdf(std::span<const uint8_t> ikm) {
-        std::vector<uint8_t> okm(32);
+    // derive session key using hkdf sha256 into zeroizing secure_vector
+    [[nodiscard]] secure_vector derive_hkdf(std::span<const uint8_t> ikm) {
+        secure_vector okm(32);
         evp_pkey_ctx_ptr pctx(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr));
         if (!pctx) throw std::runtime_error("hkdf context allocation failed");
 
@@ -45,7 +48,7 @@ public:
         size_t x_pub_len = x25519_pub_len;
         size_t x_priv_len = x25519_priv_len;
         std::vector<uint8_t> x_pub(x_pub_len);
-        std::vector<uint8_t> x_priv(x_priv_len);
+        secure_vector x_priv(x_priv_len);
 
         EVP_PKEY_get_raw_public_key(x25519_pkey.get(), x_pub.data(), &x_pub_len);
         EVP_PKEY_get_raw_private_key(x25519_pkey.get(), x_priv.data(), &x_priv_len);
@@ -55,7 +58,7 @@ public:
         if (!kem) throw std::runtime_error("mlkem768 init failed");
 
         std::vector<uint8_t> oqs_pub(kem->length_public_key);
-        std::vector<uint8_t> oqs_priv(kem->length_secret_key);
+        secure_vector oqs_priv(kem->length_secret_key);
 
         if (OQS_KEM_keypair(kem.get(), oqs_pub.data(), oqs_priv.data()) != OQS_SUCCESS) {
             throw std::runtime_error("mlkem768 keygen failed");
@@ -94,13 +97,13 @@ public:
 
         size_t x_secret_len = 0;
         EVP_PKEY_derive(derive_ctx.get(), nullptr, &x_secret_len);
-        std::vector<uint8_t> x_shared_secret(x_secret_len);
+        secure_vector x_shared_secret(x_secret_len);
         EVP_PKEY_derive(derive_ctx.get(), x_shared_secret.data(), &x_secret_len);
 
         // perform mlkem768 encapsulation
         oqs_kem_ptr kem(OQS_KEM_new(OQS_KEM_alg_ml_kem_768));
         std::vector<uint8_t> oqs_ct(kem->length_ciphertext);
-        std::vector<uint8_t> oqs_shared_secret(kem->length_shared_secret);
+        secure_vector oqs_shared_secret(kem->length_shared_secret);
 
         if (OQS_KEM_encaps(kem.get(), oqs_ct.data(), oqs_shared_secret.data(), peer_oqs_pub.data()) != OQS_SUCCESS) {
             throw std::runtime_error("mlkem768 encaps failed");
@@ -112,7 +115,7 @@ public:
         enc_out.ciphertext.insert(enc_out.ciphertext.end(), eph_x.public_key.begin(), eph_x.public_key.begin() + x25519_pub_len);
         enc_out.ciphertext.insert(enc_out.ciphertext.end(), oqs_ct.begin(), oqs_ct.end());
 
-        std::vector<uint8_t> combined_ikm;
+        secure_vector combined_ikm;
         combined_ikm.reserve(x_shared_secret.size() + oqs_shared_secret.size());
         combined_ikm.insert(combined_ikm.end(), x_shared_secret.begin(), x_shared_secret.end());
         combined_ikm.insert(combined_ikm.end(), oqs_shared_secret.begin(), oqs_shared_secret.end());
@@ -121,7 +124,7 @@ public:
         return enc_out;
     }
 
-    [[nodiscard]] std::vector<uint8_t> decapsulate(std::span<const uint8_t> ciphertext, std::span<const uint8_t> secret_key) override {
+    [[nodiscard]] secure_vector decapsulate(std::span<const uint8_t> ciphertext, std::span<const uint8_t> secret_key) override {
         // ecdh decapsulation
         auto eph_x_pub = ciphertext.subspan(0, x25519_pub_len);
         auto oqs_ct = ciphertext.subspan(x25519_pub_len);
@@ -140,18 +143,18 @@ public:
 
         size_t x_secret_len = 0;
         EVP_PKEY_derive(derive_ctx.get(), nullptr, &x_secret_len);
-        std::vector<uint8_t> x_shared_secret(x_secret_len);
+        secure_vector x_shared_secret(x_secret_len);
         EVP_PKEY_derive(derive_ctx.get(), x_shared_secret.data(), &x_secret_len);
 
         // mlkem768 decapsulation
         oqs_kem_ptr kem(OQS_KEM_new(OQS_KEM_alg_ml_kem_768));
-        std::vector<uint8_t> oqs_shared_secret(kem->length_shared_secret);
+        secure_vector oqs_shared_secret(kem->length_shared_secret);
 
         if (OQS_KEM_decaps(kem.get(), oqs_shared_secret.data(), oqs_ct.data(), oqs_priv.data()) != OQS_SUCCESS) {
             throw std::runtime_error("mlkem768 decapsulation failed");
         }
 
-        std::vector<uint8_t> combined_ikm;
+        secure_vector combined_ikm;
         combined_ikm.reserve(x_shared_secret.size() + oqs_shared_secret.size());
         combined_ikm.insert(combined_ikm.end(), x_shared_secret.begin(), x_shared_secret.end());
         combined_ikm.insert(combined_ikm.end(), oqs_shared_secret.begin(), oqs_shared_secret.end());

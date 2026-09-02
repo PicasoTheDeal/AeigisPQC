@@ -37,6 +37,7 @@ enable_testing()
 add_executable(aegis_tests
     tests/test_crypto.cpp
     tests/test_session.cpp
+    tests/test_secure_memory.cpp
 )
 
 target_link_libraries(aegis_tests PRIVATE aegispqc_core Catch2::Catch2WithMain)

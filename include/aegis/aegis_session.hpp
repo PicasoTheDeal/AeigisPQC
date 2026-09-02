@@ -23,7 +23,7 @@ private:
 
     key_pair local_kem_keys_;
     key_pair local_sig_keys_;
-    std::vector<uint8_t> derived_session_key_;
+    secure_vector derived_session_key_; // Secured session key storage
 
 public:
     explicit aegis_session(security_level level = security_level::nist_level_3);
