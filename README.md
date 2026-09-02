@@ -180,9 +180,18 @@ cmake --build build -j$(nproc)
 
 sudo pacman -S base-devel cmake clang openssl
 
-# This one might take time
+# Use brew 
 
-yay -S liboqs 
+brew install liboqs
+
+# Or build it directly
+
+git clone -b 0.16.0 https://github.com/open-quantum-safe/liboqs.git
+cd liboqs
+cmake -G Ninja -B build -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -DOQS_USE_OPENSSL=ON
+ninja -C build
+sudo ninja -C build install
+sudo ldconfig
 
 # Debian / Ubuntu (22.04+)
 
