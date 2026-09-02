@@ -1,7 +1,7 @@
 # build outputs
 build/
-build-san/
 build-bench/
+build-san/
 bin/
 lib/
 *.o
