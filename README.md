@@ -158,7 +158,7 @@ Manages the end-to-end handshake execution flow between endpoints.
 
 Executable demonstration running key exchange, signature verification, HKDF derivation, and payload encryption cycles.
 
-## Build Pipeline
+## Build Pipeline & Run
 
 ### Building AegisPQC
 
@@ -171,4 +171,16 @@ cmake --build build -j$(nproc)
 
 # 3. Execute demo driver
 ./build/aegis_demo
+```
+
+## System Requirements & Dependencies
+
+```bash
+# Arch Linux
+
+sudo pacman -S base-devel cmake clang openssl liboqs
+
+# Debian / Ubuntu (22.04+)
+
+sudo apt update && sudo apt install -y build-essential cmake clang libssl-dev liboqs-dev
 ```
