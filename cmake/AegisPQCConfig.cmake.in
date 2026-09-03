@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(OpenSSL REQUIRED)
+find_dependency(liboqs REQUIRED)
+
+include("${CMAKE_CURRENT_LIST_DIR}/AegisPQCTargets.cmake")
+check_required_components(AegisPQC)

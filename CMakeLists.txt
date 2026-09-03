@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
-project(aegispqc CXX)
+project(aegispqc VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# --- Dependencies ---
 find_package(OpenSSL REQUIRED)
 find_library(OQS_LIB oqs REQUIRED)
 
-include_directories(include)
-
+# --- Core Library ---
 add_library(aegispqc_core
     src/crypto/hybrid_kem.cpp
     src/crypto/mldsa_signer.cpp
@@ -20,21 +20,31 @@ add_library(aegispqc_core
     src/c_api.cpp
 )
 
+target_include_directories(aegispqc_core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
 target_link_libraries(aegispqc_core PUBLIC OpenSSL::Crypto ${OQS_LIB})
 
+# --- Demo Executable ---
 add_executable(aegis_demo src/main.cpp)
 target_link_libraries(aegis_demo PRIVATE aegispqc_core)
 
 # --- Unit Tests Setup ---
-include(FetchContent)
-FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.5.2
-)
-FetchContent_MakeAvailable(Catch2)
-
 enable_testing()
+
+include(FetchContent)
+find_package(Catch2 3 QUIET)
+
+if(NOT Catch2_FOUND)
+    FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG        v3.5.2
+    )
+    FetchContent_MakeAvailable(Catch2)
+endif()
 
 add_executable(aegis_tests
     tests/test_crypto.cpp
